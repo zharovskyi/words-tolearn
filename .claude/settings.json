@@ -2,5 +2,9 @@
   "ignorePatterns": [".env", ".env.*", "**/.env*", "*.pem", "*.key"],
   "permissions": {
     "deny": ["Read(.env)", "Read(.env.*)"]
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
   }
 }
