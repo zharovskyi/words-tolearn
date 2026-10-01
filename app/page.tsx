@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { connection } from "next/server";
 import AddWordForm from "@/components/AddWordForm";
 import { prisma } from "@/lib/db";
@@ -30,6 +31,15 @@ export default async function Home() {
           example sentences, and the word enters your review schedule.
         </p>
       </header>
+
+      <nav>
+        <Link
+          href="/review"
+          className="inline-block rounded-lg border border-indigo-600 px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950"
+        >
+          Start review →
+        </Link>
+      </nav>
 
       <AddWordForm />
 
