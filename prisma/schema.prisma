@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum WordStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum EnrichmentStatus {
+  PENDING
+  READY
+  FAILED
+}
+
+enum ArchiveReason {
+  COMPLETED
+  MANUAL
+}
+
+enum ReviewOutcome {
+  REMEMBERED
+  FORGOT
+}
+
+model Word {
+  id              String           @id @default(cuid())
+  text            String
+  textKey         String           @unique
+  translation     String?
+  enrichment      EnrichmentStatus @default(PENDING)
+  enrichmentError String?
+  status          WordStatus       @default(ACTIVE)
+  level           Int              @default(0)
+  dueDate         String?
+  archivedAt      DateTime?
+  archiveReason   ArchiveReason?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  examples        Example[]
+  reviews         ReviewLog[]
+
+  @@index([status, enrichment, dueDate])
+  @@index([status, archivedAt])
+}
+
+model Example {
+  id       String @id @default(cuid())
+  wordId   String
+  position Int
+  sentence String
+  word     Word   @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@unique([wordId, position])
+}
+
+model ReviewLog {
+  id         String        @id @default(cuid())
+  wordId     String
+  reviewedAt DateTime      @default(now())
+  outcome    ReviewOutcome
+  fromLevel  Int
+  toLevel    Int?
+  nextDue    String?
+  word       Word          @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@index([wordId, reviewedAt])
+}
