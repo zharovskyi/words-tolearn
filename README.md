@@ -42,7 +42,7 @@ Environment variables (`.env`):
 ## Scripts
 
 - `npm run dev` - development server
-- `npm test` - unit tests (Vitest)
+- `npm test` - unit and integration tests (Vitest; integration tests use a temporary SQLite database and never touch `dev.db`)
 - `npm run verify` - Prisma validate and generate, type check, lint, tests and production build
 
 ## Notes

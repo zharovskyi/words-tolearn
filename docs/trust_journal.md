@@ -118,6 +118,25 @@ A log of AI-assisted work stages and how much trust each result earned.
 - The change was validated with `openspec validate --strict`, archived as `2026-10-01-add-vocabulary-srs-core`, and the five main specs in `openspec/specs/` were validated.
 - README.md was written (setup, environment variables, scripts, notes). A build was checked for leaked API keys in `.next/static`; none were found.
 
-**Known gaps (recorded in the archived tasks)**
+**Known gaps at the time (recorded in the archived tasks)**
 - No automated integration tests for the database services and the AI step; these were verified with ad-hoc scripts and by hand.
 - Mark as learned and Restore have no automated tests.
+
+Both gaps were closed in Stage 10.
+
+## Stage 10: Integration tests
+
+- **Date:** 2026-10-01
+- **Trust level:** High
+
+**What was done**
+- Vitest integration tests that run against a throwaway SQLite database per test file, created with the real migrations (`test/setup-db.ts`), so the development database is never touched.
+- Covered: the review service (queue filtering and ordering, every level transition, archive, Forgot, overdue dates, history log, not-due/archived/failed rejection, double submit), the word actions (add with validation, duplicates, archived duplicates, AI failure, spelling correction and its conflicts, Retry, Delete cascade, Mark as learned, Restore) and the AI step with a mocked model (valid and invalid output, prompt content, timeout and retry settings, missing key, no leaking of provider error text).
+- Tests grew from 16 to 76 and run as part of `npm run verify`.
+
+**Why trust is high**
+- Mutation check: six deliberate breakages (wrong interval, queue order, removed not-due guard, wrong archive reason, removed duplicate guard, relaxed example count) were each caught by a failing test, then reverted.
+
+**Limits**
+- The AI step is tested with a mocked model; live Gemini behavior was checked by hand earlier and is not part of the automated suite.
+- Page components and buttons are still verified by hand, not by automated UI tests.
