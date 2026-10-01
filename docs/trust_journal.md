@@ -97,7 +97,27 @@ A log of AI-assisted work stages and how much trust each result earned.
 **Why this trust level**
 - Checked with live Gemini calls ("recieve" and "run out ofe" were corrected). The AI can still "correct" a rare word or slang that looks like a typo; the form shows what was changed.
 
-## Pending
+## Stage 8: End-to-end browser check
 
-- **End-to-end browser check:** not done. All UI behavior so far was verified by scripts and rendered HTML, not by clicking through the app.
-- **`openspec archive`:** not done. The OpenSpec change `add-vocabulary-srs-core` still has unchecked tasks, and its specs do not yet describe the spelling correction, Retry/Delete or the How it works page.
+- **Date:** 2026-10-01
+- **Trust level:** High
+
+**What was done**
+- The user manually tested the full flow in the browser: adding words, AI generation, the Remembered/Forgot review buttons, navigation and the archive.
+
+**Why trust is high**
+- This closes the gap noted in Stages 3, 4 and 6, where the UI had only been checked through scripts and rendered HTML. The earlier scripted checks of the logic still stand.
+
+## Stage 9: OpenSpec documentation sync and archive
+
+- **Date:** 2026-10-01
+- **Trust level:** High
+
+**What was done**
+- The OpenSpec change `add-vocabulary-srs-core` was brought in line with what was built: tasks checked off, spelling correction added to the enrichment spec, a new `app-navigation` spec (navigation and the How it works page), a forgotten-word queue rule, and a design section that lists deviations from the original plan.
+- The change was validated with `openspec validate --strict`, archived as `2026-10-01-add-vocabulary-srs-core`, and the five main specs in `openspec/specs/` were validated.
+- README.md was written (setup, environment variables, scripts, notes). A build was checked for leaked API keys in `.next/static`; none were found.
+
+**Known gaps (recorded in the archived tasks)**
+- No automated integration tests for the database services and the AI step; these were verified with ad-hoc scripts and by hand.
+- Mark as learned and Restore have no automated tests.

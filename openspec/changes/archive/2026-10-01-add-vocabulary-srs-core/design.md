@@ -152,6 +152,22 @@ Each action: parse `FormData`/args with Zod → call service → `revalidatePath
 
 Vitest. Unit: `applyReview` (all levels, both outcomes, month/year/leap boundaries, DST dates), `addDays`, `todayIn`, Zod schema. Integration: services against a temp SQLite file created via `prisma migrate deploy` (duplicate race, double-submit, queue ordering/filtering, archive/restore, cascade delete). AI: `enrich` tested with the AI SDK's mock model for valid, invalid and failing output; no live API calls in CI.
 
+### D6. Spelling correction (added during implementation)
+
+`lib/ai/schema.ts` adds `correctedText` to the structured output, and the prompt asks the model to fix typos only and return correct input unchanged. `lib/text.ts` `isPlausibleCorrection` (edit distance <= max(2, 30% of length)) guards against the model replacing the word with another one. In `addWord`, a correction that collides with an existing `textKey` removes the just-created record and reports the existing word (with restore if archived); in Retry the colliding correction is simply ignored. Alternative considered: only suggest ("Did you mean...?"). Rejected: it lets misspelled words be saved.
+
+### D7. Navigation and help page (added during implementation)
+
+A single client component (`components/NavLinks.tsx`, uses `usePathname`) renders the header links inside the server-rendered root layout. `/how-it-works` is a static Server Component. Retry, Delete, Mark as learned and Restore share one small client component (`components/WordActions.tsx`).
+
+## Deviations from the original plan
+
+- Prisma 7.10 (stable) is pinned instead of the 8.0 release candidate that npm marks as `latest`; the client is generated to `generated/prisma` (git-ignored) and used through the `better-sqlite3` driver adapter. `@types/node` was raised to 22 because Vitest 5 requires it.
+- The default model is `gemini-3.5-flash-lite`; the AI SDK v7 API used is `generateText` with `Output.object`.
+- Forgotten words are placed at the end of the day's queue by ordering on `updatedAt`.
+- `npm run verify` (validate, generate, type check, lint, tests, build) was added as the single quality gate.
+- Automated database and AI integration tests were not written. DB behavior was verified with ad-hoc scripts against SQLite and the UI by hand (see tasks.md, "Not done").
+
 ## Risks / Trade-offs
 
 - [LLM returns poor/incorrect translation] → Show the output to the user; allow retry; manual editing is deferred (see Open Questions).

@@ -1,10 +1,9 @@
-# Spec Delta
+# ai-word-enrichment Specification
 
 ## Purpose
-
 Defines the automatic generation of a Ukrainian translation and contextual example sentences for each added word, and how failures are surfaced and recovered.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Enrich a word on creation
 When an entry is added, the system SHALL generate one Ukrainian translation and between 2 and 3 distinct English example sentences showing the word or phrase used in context, and store them with the entry.
@@ -47,3 +46,21 @@ The AI provider key and all provider calls MUST remain on the server; the key MU
 #### Scenario: Client bundle inspected
 - **WHEN** the production client bundle is inspected
 - **THEN** it contains no provider key and no direct provider calls
+
+### Requirement: Correct spelling mistakes
+When enriching, the system SHALL also obtain a corrected spelling of the entered text and store the corrected text instead of the typed one, only if the change is small (a typo fix: at most 2 characters or 30% of the length, whichever is larger). A word that is already spelled correctly MUST be left unchanged. The user MUST be told when the text was changed.
+
+#### Scenario: Typo is corrected
+- **WHEN** the user adds "aple"
+- **THEN** the entry is stored as "apple" with its translation, and the user sees that "aple" was corrected to "apple"
+
+#### Scenario: Correction would replace the word with a different one
+- **WHEN** the model suggests a text that differs from the input by more than the allowed amount
+- **THEN** the suggestion is ignored and the text stays as typed
+
+### Requirement: Corrected spelling that already exists
+If the corrected spelling matches an existing entry, the system MUST NOT create a new entry and SHALL tell the user which existing word they probably meant, offering restore when that entry is archived.
+
+#### Scenario: Corrected word is already in the list
+- **WHEN** "apple" exists and the user adds "aple"
+- **THEN** no new entry is kept and the user is told the word already exists as "apple"

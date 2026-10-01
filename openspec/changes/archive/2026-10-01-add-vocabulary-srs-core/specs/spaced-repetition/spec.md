@@ -74,3 +74,10 @@ The system SHALL record each applied review with its time, outcome, previous lev
 #### Scenario: History written
 - **WHEN** a review is applied
 - **THEN** a history record with those values exists for the entry
+
+### Requirement: Forgotten words return at the end of the day's queue
+A word answered with "Forgot" SHALL appear after the other words already due for the same date in the queue.
+
+#### Scenario: Forgot with other words waiting
+- **WHEN** three words are due today and the user answers "Forgot" on the first
+- **THEN** that word is shown again only after the other two
