@@ -15,20 +15,20 @@
   Коміти: [`09ca8c6`](https://github.com/zharovskyi/words-tolearn/commit/09ca8c6) (скрипт `verify` уперше), [`51bd843`](https://github.com/zharovskyi/words-tolearn/commit/51bd843) (тести додано до `verify`), [`ab48c41`](https://github.com/zharovskyi/words-tolearn/commit/ab48c41) (виправлення ESLint і типів у Turso-скрипті).
 
 - **Верифікація (тести / evals / перевірки) — доказ:**  
-  Кількість тестів зросла з 16 до 87 (7 тестових файлів). Інтеграційні тести працюють на тимчасовій базі SQLite, яка створюється з реальних міграцій для кожного тестового файлу, тому `dev.db` не зачіпається. AI-крок тестується з мокнутою моделлю. Окремо проведено мутаційну перевірку вручну: 6 навмисних поломок (інтервал, порядок черги, перевірка «ще не час», причина архівації, захист від дублікатів, кількість прикладів), кожну з яких виявив хоча б один тест. Також перевірено, що production-збірка (`.next/static`) не містить API-ключів.  
-  Коміти: [`51bd843`](https://github.com/zharovskyi/words-tolearn/commit/51bd843) (перші 12 тестів логіки SRS), [`eff5ca1`](https://github.com/zharovskyi/words-tolearn/commit/eff5ca1) (інтеграційні тести, 76 тестів), [`ab48c41`](https://github.com/zharovskyi/words-tolearn/commit/ab48c41) та [`aaa415a`](https://github.com/zharovskyi/words-tolearn/commit/aaa415a) (тести Turso-URL і fail-safe, разом 87).
+  Кількість тестів зросла з 16 до 95 (8 тестових файлів). Інтеграційні тести працюють на тимчасовій базі SQLite, яка створюється з реальних міграцій для кожного тестового файлу, тому `dev.db` не зачіпається. AI-крок тестується з мокнутою моделлю. Окремо проведено мутаційну перевірку вручну: 6 навмисних поломок (інтервал, порядок черги, перевірка «ще не час», причина архівації, захист від дублікатів, кількість прикладів), кожну з яких виявив хоча б один тест. Також перевірено, що production-збірка (`.next/static`) не містить API-ключів.  
+  Коміти: [`51bd843`](https://github.com/zharovskyi/words-tolearn/commit/51bd843) (перші 12 тестів логіки SRS), [`eff5ca1`](https://github.com/zharovskyi/words-tolearn/commit/eff5ca1) (інтеграційні тести, 76 тестів), [`ab48c41`](https://github.com/zharovskyi/words-tolearn/commit/ab48c41) та [`aaa415a`](https://github.com/zharovskyi/words-tolearn/commit/aaa415a) (тести Turso-URL і fail-safe, разом 87), [`6fe7e52`](https://github.com/zharovskyi/words-tolearn/commit/6fe7e52) (регресійні тести за результатами рев'ю, разом 95).
 
 - **maker ≠ checker (окремий агент або прохід на рев'ю) — доказ:**  
-  Розділення ролей: Claude Code виконував роль Maker (код, міграції, тести, мутаційна перевірка, виправлення помилок), а користувач — Checker: ручне наскрізне тестування UI в браузері (додавання слів, генерація ШІ, кнопки повторення, навігація, архів), створення ключа Gemini API та бази Turso, ухвалення рішень за пропозиціями агента. Окремого другого агента-рецензента не було.  
-  Коміти: [`137a81d`](https://github.com/zharovskyi/words-tolearn/commit/137a81d) (етап 8 у журналі: ручне E2E-тестування користувачем).
+  Два проходи перевірки. (1) Окремий прохід рев'ю: навичка `/code-review` (рівень high) у відокремленому контексті, який не бачив розмови, де писався код, прочитав готовий код і знайшов 4 проблеми. Maker перевірив кожну знахідку в коді (3 підтвердилися, 1 частково: одна деталь була хибною) і виправив усі чотири: слова, що застрягали в `PENDING`, гонка при автокорекції написання, картка повторення, що лишала відкриту відповідь, і міграція Turso без транзакції. Додано 3 регресійні тести, які падають на старому коді та проходять на новому. Повний запис: [`docs/code-review.md`](https://github.com/zharovskyi/words-tolearn/blob/main/docs/code-review.md). (2) Ручна перевірка користувачем: наскрізне тестування UI в браузері (додавання слів, генерація ШІ, кнопки повторення, навігація, архів), створення ключа Gemini API та бази Turso, ухвалення рішень за пропозиціями агента. Обмеження: рев'юер працює на тій самій моделі (лише в новому контексті) і код не запускав.  
+  Коміти: [`6fe7e52`](https://github.com/zharovskyi/words-tolearn/commit/6fe7e52) (виправлення за результатами рев'ю), [`137a81d`](https://github.com/zharovskyi/words-tolearn/commit/137a81d) (етап 8 у журналі: ручне E2E-тестування користувачем).
 
 - **Специфікації наперед (SDD) — доказ:**  
   Розробку почато з OpenSpec-зміни `add-vocabulary-srs-core` (proposal, design, 4 специфікації, tasks), яку було створено до написання коду. Вимоги, додані під час реалізації (автокорекція написання, навігація й сторінка «How it works», порядок забутих слів у черзі), занесено до специфікацій уже після реалізації, під час синхронізації. Зміну провалідовано через `openspec validate --strict` і заархівовано як `2026-10-01-add-vocabulary-srs-core`; у `openspec/specs/` тепер 5 специфікацій.  
   Коміти: [`e27514b`](https://github.com/zharovskyi/words-tolearn/commit/e27514b) (пропозиція, дизайн, специфікації, завдання), [`137a81d`](https://github.com/zharovskyi/words-tolearn/commit/137a81d) (синхронізація, валідація, архівація).
 
 - **Журнал рівнів довіри — доказ:**  
-  Файл `docs/trust_journal.md` містить 10 етапів розробки з рівнем довіри (від Medium до High), обґрунтуванням, хешами комітів і обмеженнями. Зокрема в ньому зафіксовано інцидент, коли тестовий скрипт агента видалив слово користувача з локальної бази.  
-  Коміти: [`2c876f2`](https://github.com/zharovskyi/words-tolearn/commit/2c876f2) (створення журналу), [`fab294e`](https://github.com/zharovskyi/words-tolearn/commit/fab294e) (етапи 2–3), [`8631181`](https://github.com/zharovskyi/words-tolearn/commit/8631181) (етапи 4–7), [`137a81d`](https://github.com/zharovskyi/words-tolearn/commit/137a81d) (етапи 8–9), [`eff5ca1`](https://github.com/zharovskyi/words-tolearn/commit/eff5ca1) (етап 10).
+  Файл `docs/trust_journal.md` містить 11 етапів розробки з рівнем довіри (від Medium до High), обґрунтуванням, хешами комітів і обмеженнями. Зокрема в ньому зафіксовано інцидент, коли тестовий скрипт агента видалив слово користувача з локальної бази.  
+  Коміти: [`2c876f2`](https://github.com/zharovskyi/words-tolearn/commit/2c876f2) (створення журналу), [`fab294e`](https://github.com/zharovskyi/words-tolearn/commit/fab294e) (етапи 2–3), [`8631181`](https://github.com/zharovskyi/words-tolearn/commit/8631181) (етапи 4–7), [`137a81d`](https://github.com/zharovskyi/words-tolearn/commit/137a81d) (етапи 8–9), [`eff5ca1`](https://github.com/zharovskyi/words-tolearn/commit/eff5ca1) (етап 10), [`6fe7e52`](https://github.com/zharovskyi/words-tolearn/commit/6fe7e52) (етап 11: незалежне рев'ю).
 
 - **Project Factory — доказ:**  
   Стандартизована структура проєкту: Next.js 16.3.8 (App Router), React 19, Prisma 7.10.0, Tailwind CSS 4, README із запуском, `.env.example`, міграції Prisma та скрипт `scripts/turso-migrate.ts` (`npm run db:turso`) для застосування міграцій до Turso. Окремого CI-конвеєра немає: перевірка запускається локально через `npm run verify`.  
@@ -44,7 +44,7 @@ Next.js 16.3.8 (App Router), React 19, TypeScript, Tailwind CSS 4, SQLite, Turso
 
 ### Що вирішував(ла) я, а що агент
 - **Я (Людина / Checker):** ідея продукту та вимоги (`docs/prd.md`, правила в `AGENTS.md`), вибір стеку, затвердження плану та кожного наступного кроку, рівні довіри для етапів 1–3, ключ Gemini API і база Turso, ручне наскрізне тестування UI в браузері, рішення залишити в розробці локальну базу, а Turso вмикати лише в production.
-- **Агент (Claude Code / Maker):** вибір стабільної Prisma 7.10.0 замість release candidate 8.0, схема бази й міграція, Server Actions, логіка SRS, інтеграція Gemini, інтерфейс, скрипт `npm run verify`, 71 новий тест і мутаційна перевірка, скрипт `turso-migrate.ts`, fail-safe в `lib/db.ts`, OpenSpec-документи, README, `trust_journal.md`, рівні довіри для етапів 4–7, 9 і 10.
+- **Агент (Claude Code / Maker):** вибір стабільної Prisma 7.10.0 замість release candidate 8.0, схема бази й міграція, Server Actions, логіка SRS, інтеграція Gemini, інтерфейс, скрипт `npm run verify`, 79 нових тестів і мутаційна перевірка, скрипт `turso-migrate.ts`, fail-safe в `lib/db.ts`, OpenSpec-документи, README, `trust_journal.md`, рівні довіри для етапів 4–7, 9 і 10.
 
 ### Перевірка
 ```text
@@ -53,19 +53,20 @@ prisma validate      -> The schema at prisma/schema.prisma is valid
 prisma generate      -> Prisma Client generated
 tsc --noEmit         -> без помилок
 eslint               -> без помилок
-vitest run           -> Test Files 7 passed (7); Tests 87 passed (87)
+vitest run           -> Test Files 8 passed (8); Tests 95 passed (95)
 next build           -> Compiled successfully; TypeScript пройдено
 exit code            -> 0
 
 Тести за файлами:
-  actions/word-actions.integration.test.ts   26
+  actions/word-actions.integration.test.ts   30
   lib/srs/review.integration.test.ts         21
   lib/ai/enrich.test.ts                      13
   lib/srs/schedule.test.ts                   12
   lib/db-config.test.ts                       8
   lib/text.test.ts                            4
+  lib/words.test.ts                           4
   lib/libsql-url.test.ts                      3
 
-Остання перевірка: git status — чисто; HEAD = aaa415a
+Перевірено на коміті 6fe7e52 (виправлення за результатами рев'ю); git status — чисто
 https://words-tolearn.vercel.app/ -> HTTP 200
 ```

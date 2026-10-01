@@ -140,3 +140,21 @@ Both gaps were closed in Stage 10.
 **Limits**
 - The AI step is tested with a mocked model; live Gemini behavior was checked by hand earlier and is not part of the automated suite.
 - Page components and buttons are still verified by hand, not by automated UI tests.
+
+## Stage 11: Independent code review (maker != checker)
+
+- **Date:** 2026-10-01
+- **Trust level:** High
+- **Commits:** `6fe7e52` (fixes), review record in `docs/code-review.md`
+
+**What was done**
+- A separate `/code-review` pass (high effort, fresh context) read the finished code and reported 4 issues. The maker verified each one: 3 confirmed, 1 partly confirmed (one detail of the claim was wrong).
+- All four were fixed: words stuck in `PENDING`, a race in spelling correction, the review card keeping the answer revealed, and a non-transactional Turso migration. Three regression tests were added; they fail on the old code and pass on the new one.
+- `npm run verify` passes with 95 tests.
+
+**Why trust is high**
+- The findings were checked against the code and the fixes against tests, not accepted on the reviewer's word.
+
+**Limits**
+- The reviewer is the same model family run in a fresh context, and it did not execute any code. The review ran once, at the end of the project.
+
