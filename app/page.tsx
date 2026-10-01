@@ -1,69 +1,90 @@
-import Image from "next/image";
+import { connection } from "next/server";
+import AddWordForm from "@/components/AddWordForm";
+import { prisma } from "@/lib/db";
+import { todayIn } from "@/lib/srs/dates";
 
-export default function Home() {
+function formatDate(iso: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${iso}T00:00:00Z`));
+}
+
+export default async function Home() {
+  await connection();
+  const today = todayIn();
+  const words = await prisma.word.findMany({
+    where: { status: "ACTIVE" },
+    orderBy: { createdAt: "desc" },
+    include: { examples: { orderBy: { position: "asc" } } },
+  });
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10 sm:py-16">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-3xl font-semibold tracking-tight">Words to learn</h1>
+        <p className="text-zinc-500">
+          Add an English word or phrase. AI adds the Ukrainian translation and
+          example sentences, and the word enters your review schedule.
+        </p>
+      </header>
+
+      <AddWordForm />
+
+      <section aria-labelledby="words-heading" className="flex flex-col gap-4">
+        <h2 id="words-heading" className="text-lg font-medium">
+          Your words{" "}
+          <span className="text-zinc-500">({words.length})</span>
+        </h2>
+
+        {words.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-zinc-300 p-6 text-center text-zinc-500 dark:border-zinc-700">
+            No words yet. Add your first one above.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {words.map((word) => (
+              <li
+                key={word.id}
+                className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                  <h3 className="text-xl font-semibold">{word.text}</h3>
+                  {word.dueDate && (
+                    <span className="text-sm text-zinc-500">
+                      {word.dueDate <= today
+                        ? "Review: today"
+                        : `Next review: ${formatDate(word.dueDate)}`}{" "}
+                      · Level {word.level}
+                    </span>
+                  )}
+                </div>
+
+                {word.enrichment === "READY" ? (
+                  <>
+                    <p className="text-lg text-indigo-600 dark:text-indigo-400">
+                      {word.translation}
+                    </p>
+                    <ul className="list-disc space-y-1 pl-5 text-sm text-zinc-600 dark:text-zinc-400">
+                      {word.examples.map((e) => (
+                        <li key={e.id}>{e.sentence}</li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <p className="text-sm text-amber-600 dark:text-amber-400">
+                    {word.enrichment === "FAILED"
+                      ? `Translation unavailable: ${word.enrichmentError ?? "AI request failed"}`
+                      : "Generating translation…"}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </main>
   );
 }
