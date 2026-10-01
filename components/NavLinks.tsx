@@ -7,6 +7,7 @@ const links = [
   { href: "/", label: "Add Word" },
   { href: "/review", label: "Review" },
   { href: "/archive", label: "Archive" },
+  { href: "/how-it-works", label: "How it works" },
 ];
 
 export default function NavLinks() {
