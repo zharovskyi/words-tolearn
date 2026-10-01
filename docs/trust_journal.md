@@ -43,3 +43,61 @@ A log of AI-assisted work stages and how much trust each result earned.
 
 **Why trust is high**
 - Verified by the full `verify` run and by rendering the page in the dev server. The form was not exercised end to end in a browser by the assistant.
+
+## Stage 4: SRS Review Mode
+
+- **Date:** 2026-10-01
+- **Trust level:** High (logic), Medium (UI)
+- **Commit:** `51bd843`
+
+**What was done**
+- Pure scheduling module `lib/srs/schedule.ts` (levels 0-4, intervals +1/+2/+14/+60 days, archive after level 4, Forgot resets to level 0 due today) with 12 Vitest unit tests; tests are part of `npm run verify`.
+- Review service with a transactional optimistic-concurrency update and a `ReviewLog` entry per review; `/review` page with flashcard component and an "All caught up!" empty state.
+
+**Why this trust level**
+- Logic was verified against the real SQLite database: all level transitions, rejection of not-due words, a double submit advancing only one level, and archiving.
+- The flashcard UI was not clicked through in a browser by the assistant.
+- Incident: a test script ended with `deleteMany()` and deleted a word the user had added. Test scripts must delete only their own records.
+
+## Stage 5: Navigation, How it works, Retry and Delete
+
+- **Date:** 2026-10-01
+- **Trust level:** High
+- **Commits:** `ce7f64e`, `1ce51b7`
+
+**What was done**
+- Global header in `app/layout.tsx` with an active-link highlight (`NavLinks.tsx`), later extended with Archive and "How it works" entries.
+- "Retry" for words whose AI enrichment failed and "Delete" with confirmation.
+- "How it works" page describing the rules and the review schedule.
+
+**Why trust is high**
+- Active-link highlighting was checked in the rendered HTML of the dev server; Retry and Delete were checked on the real database with a test record.
+
+## Stage 6: Archive
+
+- **Date:** 2026-10-01
+- **Trust level:** High
+- **Commit:** `04cfecc`
+
+**What was done**
+- "Mark as learned", "Restore" and the `/archive` page; adding a word that is already archived offers to restore it.
+
+**Why trust is high**
+- Verified on the real database: archived words leave the review queue, restoring returns a word to level 0 due today, and a duplicate of an archived word is detected. Buttons were not clicked in a browser by the assistant.
+
+## Stage 7: AI spelling correction
+
+- **Date:** 2026-10-01
+- **Trust level:** Medium-High
+- **Commit:** `27320f9`
+
+**What was done**
+- The AI also returns a corrected spelling; it is applied only when the edit is small (edit-distance check with unit tests), and conflicts with existing words are reported.
+
+**Why this trust level**
+- Checked with live Gemini calls ("recieve" and "run out ofe" were corrected). The AI can still "correct" a rare word or slang that looks like a typo; the form shows what was changed.
+
+## Pending
+
+- **End-to-end browser check:** not done. All UI behavior so far was verified by scripts and rendered HTML, not by clicking through the app.
+- **`openspec archive`:** not done. The OpenSpec change `add-vocabulary-srs-core` still has unchecked tasks, and its specs do not yet describe the spelling correction, Retry/Delete or the How it works page.
