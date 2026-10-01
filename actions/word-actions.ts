@@ -9,7 +9,7 @@ import { normalizeKey, wordInputSchema } from "@/lib/text";
 
 export type AddWordResult =
   | ({ ok: true; wordId: string } & ({ enrichment: "READY" } | { enrichment: "FAILED"; error: string }))
-  | { ok: false; error: string };
+  | { ok: false; error: string; archivedId?: string };
 
 export async function addWord(input: string): Promise<AddWordResult> {
   const parsed = wordInputSchema.safeParse(input);
@@ -32,6 +32,17 @@ export async function addWord(input: string): Promise<AddWordResult> {
     wordId = word.id;
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      const existing = await prisma.word.findUnique({
+        where: { textKey: normalizeKey(text) },
+        select: { id: true, status: true },
+      });
+      if (existing?.status === "ARCHIVED") {
+        return {
+          ok: false,
+          error: "This word is in your archive",
+          archivedId: existing.id,
+        };
+      }
       return { ok: false, error: "This word already exists" };
     }
     throw e;
@@ -94,5 +105,41 @@ export async function deleteWord(id: string): Promise<ActionResult> {
   const { count } = await prisma.word.deleteMany({ where: { id } });
   revalidatePath("/");
   revalidatePath("/review");
+  revalidatePath("/archive");
+  return count > 0 ? { ok: true } : { ok: false, error: "Word not found" };
+}
+
+/** Archive an active word immediately as manually learned. */
+export async function markLearned(id: string): Promise<ActionResult> {
+  const { count } = await prisma.word.updateMany({
+    where: { id, status: "ACTIVE" },
+    data: {
+      status: "ARCHIVED",
+      archiveReason: "MANUAL",
+      archivedAt: new Date(),
+      dueDate: null,
+    },
+  });
+  revalidatePath("/");
+  revalidatePath("/review");
+  revalidatePath("/archive");
+  return count > 0 ? { ok: true } : { ok: false, error: "Word not found" };
+}
+
+/** Bring an archived word back into the learning loop at level 0, due today. */
+export async function restoreWord(id: string): Promise<ActionResult> {
+  const { count } = await prisma.word.updateMany({
+    where: { id, status: "ARCHIVED" },
+    data: {
+      status: "ACTIVE",
+      level: 0,
+      dueDate: todayIn(),
+      archivedAt: null,
+      archiveReason: null,
+    },
+  });
+  revalidatePath("/");
+  revalidatePath("/review");
+  revalidatePath("/archive");
   return count > 0 ? { ok: true } : { ok: false, error: "Word not found" };
 }

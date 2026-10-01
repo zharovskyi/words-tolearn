@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { deleteWord, retryEnrichment } from "@/actions/word-actions";
+import { deleteWord, markLearned, restoreWord, retryEnrichment } from "@/actions/word-actions";
 
 export default function WordActions({
   id,
   text,
-  canRetry,
+  canRetry = false,
+  archived = false,
 }: {
   id: string;
   text: string;
-  canRetry: boolean;
+  canRetry?: boolean;
+  archived?: boolean;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -33,6 +35,25 @@ export default function WordActions({
           className="font-medium text-indigo-600 hover:underline disabled:opacity-60 dark:text-indigo-400"
         >
           {pending ? "Retrying…" : "Retry"}
+        </button>
+      )}
+      {archived ? (
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => run(() => restoreWord(id))}
+          className="font-medium text-indigo-600 hover:underline disabled:opacity-60 dark:text-indigo-400"
+        >
+          Restore
+        </button>
+      ) : (
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => run(() => markLearned(id))}
+          className="font-medium text-emerald-600 hover:underline disabled:opacity-60 dark:text-emerald-400"
+        >
+          Mark as learned
         </button>
       )}
       <button

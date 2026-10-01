@@ -1,14 +1,19 @@
 "use client";
 
-import { useActionState } from "react";
-import { addWord } from "@/actions/word-actions";
+import { useActionState, useState, useTransition } from "react";
+import { addWord, restoreWord } from "@/actions/word-actions";
 
-type FormState = { error?: string; notice?: string; text?: string };
+type FormState = {
+  error?: string;
+  notice?: string;
+  text?: string;
+  archivedId?: string;
+};
 
 async function submit(_prev: FormState, formData: FormData): Promise<FormState> {
   const text = String(formData.get("word") ?? "");
   const result = await addWord(text);
-  if (!result.ok) return { error: result.error, text };
+  if (!result.ok) return { error: result.error, text, archivedId: result.archivedId };
   if (result.enrichment === "FAILED") {
     return {
       notice: `"${text.trim()}" was saved, but AI could not generate the translation (${result.error}).`,
@@ -19,6 +24,8 @@ async function submit(_prev: FormState, formData: FormData): Promise<FormState> 
 
 export default function AddWordForm() {
   const [state, action, pending] = useActionState(submit, {});
+  const [restoring, startRestore] = useTransition();
+  const [restored, setRestored] = useState<string | null>(null);
 
   return (
     <form action={action} className="flex flex-col gap-2">
@@ -51,6 +58,27 @@ export default function AddWordForm() {
       {state.error && (
         <p role="alert" className="text-sm text-red-600 dark:text-red-400">
           {state.error}
+        </p>
+      )}
+      {state.archivedId && restored !== state.archivedId && (
+        <button
+          type="button"
+          disabled={restoring}
+          onClick={() => {
+            const id = state.archivedId!;
+            startRestore(async () => {
+              const result = await restoreWord(id);
+              if (result.ok) setRestored(id);
+            });
+          }}
+          className="self-start text-sm font-medium text-indigo-600 hover:underline disabled:opacity-60 dark:text-indigo-400"
+        >
+          Restore it to your learning list
+        </button>
+      )}
+      {state.archivedId && restored === state.archivedId && (
+        <p role="status" className="text-sm text-emerald-600 dark:text-emerald-400">
+          Restored. It is back in your list at level 0.
         </p>
       )}
       {state.notice && (
