@@ -38,15 +38,17 @@ Environment variables (`.env`):
 | `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey) |
 | `AI_MODEL` | Gemini model id, default `gemini-3.5-flash-lite` |
 | `APP_TIMEZONE` | Time zone that defines "today", default `Europe/Kyiv` |
+| `DATABASE_URL_LIBSQL` | Optional [Turso](https://turso.tech) URL, `libsql://<db>.turso.io?authToken=<token>`. Used in production; in development only when `USE_TURSO=1` |
 
 ## Scripts
 
 - `npm run dev` - development server
 - `npm test` - unit and integration tests (Vitest; integration tests use a temporary SQLite database and never touch `dev.db`)
+- `npm run db:turso` - apply the Prisma migrations to the Turso database (the Prisma CLI cannot connect to `libsql://`, so `prisma db push` does not work there); safe to re-run
 - `npm run verify` - Prisma validate and generate, type check, lint, tests and production build
 
 ## Notes
 
 - Single user, no authentication.
-- The database is a SQLite file, so the app needs a host with a persistent disk. Serverless hosts that reset the file system will lose data.
+- Locally the database is a SQLite file. For serverless hosting (e.g. Vercel) use Turso: create the database, set `DATABASE_URL_LIBSQL` in the host's environment, and run `npm run db:turso` once and after every schema change.
 - The AI key is only used on the server and never sent to the browser.
