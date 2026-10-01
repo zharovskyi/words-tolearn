@@ -5,10 +5,13 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { enrichWord } from "@/lib/ai/enrich";
 import { todayIn } from "@/lib/srs/dates";
-import { normalizeKey, wordInputSchema } from "@/lib/text";
+import { isPlausibleCorrection, normalizeKey, wordInputSchema } from "@/lib/text";
 
 export type AddWordResult =
-  | ({ ok: true; wordId: string } & ({ enrichment: "READY" } | { enrichment: "FAILED"; error: string }))
+  | ({ ok: true; wordId: string; correctedFrom?: string; text: string } & (
+      | { enrichment: "READY" }
+      | { enrichment: "FAILED"; error: string }
+    ))
   | { ok: false; error: string; archivedId?: string };
 
 export async function addWord(input: string): Promise<AddWordResult> {
@@ -48,14 +51,40 @@ export async function addWord(input: string): Promise<AddWordResult> {
     throw e;
   }
 
-  const outcome = await enrichAndSave(wordId, text);
+  const outcome = await enrichAndSave(wordId, text, true);
+  if (outcome.enrichment === "CONFLICT") {
+    // The corrected spelling is already in the list: drop the misspelled duplicate.
+    await prisma.word.delete({ where: { id: wordId } });
+    revalidatePath("/");
+    return {
+      ok: false,
+      error: `Did you mean "${outcome.existing.text}"? It ${
+        outcome.existing.status === "ARCHIVED" ? "is in your archive" : "already exists"
+      }.`,
+      archivedId: outcome.existing.status === "ARCHIVED" ? outcome.existing.id : undefined,
+    };
+  }
   revalidatePath("/");
-  return { ok: true, wordId, ...outcome };
+  const { correctedTo, ...rest } = outcome as EnrichOutcome & { correctedTo?: string };
+  return {
+    ok: true,
+    wordId,
+    text: correctedTo ?? text,
+    correctedFrom: correctedTo ? text : undefined,
+    ...rest,
+  } as AddWordResult;
 }
 
-type EnrichOutcome = { enrichment: "READY" } | { enrichment: "FAILED"; error: string };
+type EnrichOutcome =
+  | { enrichment: "READY"; correctedTo?: string }
+  | { enrichment: "FAILED"; error: string }
+  | { enrichment: "CONFLICT"; existing: { id: string; text: string; status: string } };
 
-async function enrichAndSave(wordId: string, text: string): Promise<EnrichOutcome> {
+async function enrichAndSave(
+  wordId: string,
+  text: string,
+  mayConflict = false,
+): Promise<EnrichOutcome> {
   const result = await enrichWord(text);
 
   if (!result.ok) {
@@ -66,11 +95,26 @@ async function enrichAndSave(wordId: string, text: string): Promise<EnrichOutcom
     return { enrichment: "FAILED", error: result.error };
   }
 
+  let correctedTo: string | undefined;
+  const suggested = result.data.correctedText;
+  if (isPlausibleCorrection(text, suggested)) {
+    const existing = await prisma.word.findUnique({
+      where: { textKey: normalizeKey(suggested) },
+      select: { id: true, text: true, status: true },
+    });
+    if (existing && existing.id !== wordId) {
+      if (mayConflict) return { enrichment: "CONFLICT", existing };
+    } else {
+      correctedTo = suggested;
+    }
+  }
+
   await prisma.$transaction([
     prisma.example.deleteMany({ where: { wordId } }),
     prisma.word.update({
       where: { id: wordId },
       data: {
+        ...(correctedTo ? { text: correctedTo, textKey: normalizeKey(correctedTo) } : {}),
         translation: result.data.translation,
         enrichment: "READY",
         enrichmentError: null,
@@ -83,7 +127,7 @@ async function enrichAndSave(wordId: string, text: string): Promise<EnrichOutcom
       },
     }),
   ]);
-  return { enrichment: "READY" };
+  return { enrichment: "READY", correctedTo };
 }
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -98,7 +142,7 @@ export async function retryEnrichment(id: string): Promise<ActionResult> {
   revalidatePath("/");
   return outcome.enrichment === "READY"
     ? { ok: true }
-    : { ok: false, error: outcome.error };
+    : { ok: false, error: outcome.enrichment === "FAILED" ? outcome.error : "Could not retry" };
 }
 
 export async function deleteWord(id: string): Promise<ActionResult> {

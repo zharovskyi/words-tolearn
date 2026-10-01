@@ -19,6 +19,9 @@ async function submit(_prev: FormState, formData: FormData): Promise<FormState> 
       notice: `"${text.trim()}" was saved, but AI could not generate the translation (${result.error}).`,
     };
   }
+  if (result.correctedFrom) {
+    return { notice: `Spelling corrected: "${result.correctedFrom}" → "${result.text}".` };
+  }
   return {};
 }
 

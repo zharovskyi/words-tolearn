@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const enrichmentSchema = z.object({
+  correctedText: z.string().trim().min(1).max(100),
   translation: z.string().trim().min(1).max(200),
   examples: z
     .array(z.string().trim().min(1).max(200))
