@@ -24,6 +24,7 @@
 ## Task Execution
 - Always read `docs/prd.md` before generating new schemas or features.
 - When creating the database schema, ensure there are fields for `nextReviewDate` (DateTime), `intervalLevel` (Int), `translation` (String), and `contextSentences` (JSON/Array of strings).
+- Implemented schema mapping (see `prisma/schema.prisma`): `nextReviewDate` is `Word.dueDate`, a `YYYY-MM-DD` string in `APP_TIMEZONE` (day-based intervals stay immune to UTC/DST drift); `intervalLevel` is `Word.level`; `contextSentences` is the `Example` table, one ordered row per sentence (`position`) instead of a JSON array; `translation` is `Word.translation`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
