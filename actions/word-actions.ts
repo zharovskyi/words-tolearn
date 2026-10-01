@@ -5,6 +5,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { enrichWord } from "@/lib/ai/enrich";
 import { todayIn } from "@/lib/srs/dates";
+import { canRetryEnrichment } from "@/lib/words";
 import { isPlausibleCorrection, normalizeKey, wordInputSchema } from "@/lib/text";
 
 export type AddWordResult =
@@ -80,10 +81,27 @@ type EnrichOutcome =
   | { enrichment: "FAILED"; error: string }
   | { enrichment: "CONFLICT"; existing: { id: string; text: string; status: string } };
 
+/** Never leaves a word stuck in PENDING: unexpected errors mark it FAILED so it can be retried. */
 async function enrichAndSave(
   wordId: string,
   text: string,
   mayConflict = false,
+): Promise<EnrichOutcome> {
+  try {
+    return await enrichAndSaveUnsafe(wordId, text, mayConflict);
+  } catch {
+    const error = "Could not save the result";
+    await prisma.word
+      .update({ where: { id: wordId }, data: { enrichment: "FAILED", enrichmentError: error } })
+      .catch(() => undefined);
+    return { enrichment: "FAILED", error };
+  }
+}
+
+async function enrichAndSaveUnsafe(
+  wordId: string,
+  text: string,
+  mayConflict: boolean,
 ): Promise<EnrichOutcome> {
   const result = await enrichWord(text);
 
@@ -109,24 +127,37 @@ async function enrichAndSave(
     }
   }
 
-  await prisma.$transaction([
-    prisma.example.deleteMany({ where: { wordId } }),
-    prisma.word.update({
-      where: { id: wordId },
-      data: {
-        ...(correctedTo ? { text: correctedTo, textKey: normalizeKey(correctedTo) } : {}),
-        translation: result.data.translation,
-        enrichment: "READY",
-        enrichmentError: null,
-        examples: {
-          create: result.data.examples.map((sentence, position) => ({
-            sentence,
-            position,
-          })),
+  const save = (newText?: string) =>
+    prisma.$transaction([
+      prisma.example.deleteMany({ where: { wordId } }),
+      prisma.word.update({
+        where: { id: wordId },
+        data: {
+          ...(newText ? { text: newText, textKey: normalizeKey(newText) } : {}),
+          translation: result.data.translation,
+          enrichment: "READY",
+          enrichmentError: null,
+          examples: {
+            create: result.data.examples.map((sentence, position) => ({
+              sentence,
+              position,
+            })),
+          },
         },
-      },
-    }),
-  ]);
+      }),
+    ]);
+
+  try {
+    await save(correctedTo);
+  } catch (e) {
+    // Another word took the corrected spelling between the check and the write.
+    if (correctedTo && e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      correctedTo = undefined;
+      await save();
+    } else {
+      throw e;
+    }
+  }
   return { enrichment: "READY", correctedTo };
 }
 
@@ -135,7 +166,7 @@ export type ActionResult = { ok: true } | { ok: false; error: string };
 /** Retry AI enrichment for a word whose previous attempt failed. Level and due date are untouched. */
 export async function retryEnrichment(id: string): Promise<ActionResult> {
   const word = await prisma.word.findUnique({ where: { id } });
-  if (!word || word.enrichment !== "FAILED") {
+  if (!word || !canRetryEnrichment(word)) {
     return { ok: false, error: "Nothing to retry" };
   }
   const outcome = await enrichAndSave(word.id, word.text);

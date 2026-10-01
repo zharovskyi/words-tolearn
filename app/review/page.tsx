@@ -22,7 +22,7 @@ export default async function ReviewPage() {
 
       {current ? (
         <ReviewCard
-          key={current.id}
+          key={`${current.id}:${current.updatedAt.getTime()}`}
           id={current.id}
           text={current.text}
           translation={current.translation ?? ""}

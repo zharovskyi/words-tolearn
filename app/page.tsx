@@ -4,6 +4,7 @@ import WordActions from "@/components/WordActions";
 import AddWordForm from "@/components/AddWordForm";
 import { prisma } from "@/lib/db";
 import { todayIn } from "@/lib/srs/dates";
+import { canRetryEnrichment } from "@/lib/words";
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat("en-GB", {
@@ -95,7 +96,7 @@ export default async function Home() {
                 <WordActions
                   id={word.id}
                   text={word.text}
-                  canRetry={word.enrichment === "FAILED"}
+                  canRetry={canRetryEnrichment(word)}
                 />
               </li>
             ))}

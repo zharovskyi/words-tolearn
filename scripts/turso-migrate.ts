@@ -41,11 +41,22 @@ async function main(raw: string) {
   for (const name of names) {
     if (applied.has(name)) continue;
     const sql = readFileSync(path.join(dir, name, "migration.sql"), "utf8");
-    await db.executeMultiple(sql);
-    await db.execute({
-      sql: "INSERT INTO _applied_migrations (name, appliedAt) VALUES (?, ?)",
-      args: [name, new Date().toISOString()],
-    });
+    // One transaction per migration: a failure leaves the database untouched,
+    // so the migration can simply be re-run.
+    const tx = await db.transaction("write");
+    try {
+      await tx.executeMultiple(sql);
+      await tx.execute({
+        sql: "INSERT INTO _applied_migrations (name, appliedAt) VALUES (?, ?)",
+        args: [name, new Date().toISOString()],
+      });
+      await tx.commit();
+    } catch (e) {
+      await tx.rollback();
+      throw new Error(`Migration ${name} failed and was rolled back: ${(e as Error).message}`);
+    } finally {
+      tx.close();
+    }
     console.log(`Applied ${name}`);
     count++;
   }

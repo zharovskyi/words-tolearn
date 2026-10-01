@@ -162,6 +162,54 @@ describe("addWord", () => {
   });
 });
 
+describe("robustness", () => {
+  it("never leaves a word PENDING when saving the AI result fails", async () => {
+    aiReturns({}, "resilient");
+    const spy = vi.spyOn(prisma, "$transaction").mockRejectedValueOnce(new Error("db down"));
+
+    const result = await addWord("resilient");
+    spy.mockRestore();
+
+    expect(result).toMatchObject({ ok: true, enrichment: "FAILED", error: "Could not save the result" });
+    const word = await prisma.word.findUniqueOrThrow({ where: { textKey: "resilient" } });
+    expect(word).toMatchObject({ enrichment: "FAILED", enrichmentError: "Could not save the result" });
+  });
+
+  it("keeps the typed text when the corrected spelling is taken between the check and the write", async () => {
+    await makeWord({ text: "apple" });
+    aiReturns({ correctedText: "apple", translation: "яблуко" }, "aple");
+    // Simulate the race: the conflict check does not see the existing word.
+    const spy = vi.spyOn(prisma.word, "findUnique").mockResolvedValueOnce(null);
+
+    const result = await addWord("aple");
+    spy.mockRestore();
+
+    expect(result).toMatchObject({ ok: true, enrichment: "READY", text: "aple" });
+    expect((result as { correctedFrom?: string }).correctedFrom).toBeUndefined();
+    const word = await prisma.word.findUniqueOrThrow({ where: { textKey: "aple" } });
+    expect(word).toMatchObject({ enrichment: "READY", translation: "яблуко" });
+    expect(await prisma.word.count()).toBe(2);
+  });
+
+  it("lets the user retry a word abandoned in PENDING", async () => {
+    const w = await makeWord({ enrichment: "PENDING", translation: null, examples: [] });
+    await prisma.word.update({
+      where: { id: w.id },
+      data: { updatedAt: new Date("2026-10-01T08:00:00Z") },
+    });
+    aiReturns({ translation: "відновлено" }, w.text);
+
+    expect(await retryEnrichment(w.id)).toEqual({ ok: true });
+    expect((await prisma.word.findUniqueOrThrow({ where: { id: w.id } })).enrichment).toBe("READY");
+  });
+
+  it("does not retry a PENDING word that is still being generated", async () => {
+    const w = await makeWord({ enrichment: "PENDING", translation: null, examples: [] });
+    expect(await retryEnrichment(w.id)).toEqual({ ok: false, error: "Nothing to retry" });
+    expect(enrich).not.toHaveBeenCalled();
+  });
+});
+
 describe("retryEnrichment", () => {
   it("fills in a failed word without touching its level or due date", async () => {
     const w = await makeWord({
