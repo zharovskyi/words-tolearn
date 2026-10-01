@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { connection } from "next/server";
+import WordActions from "@/components/WordActions";
 import AddWordForm from "@/components/AddWordForm";
 import { prisma } from "@/lib/db";
 import { todayIn } from "@/lib/srs/dates";
@@ -25,7 +26,7 @@ export default async function Home() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10 sm:py-16">
       <header className="flex flex-col gap-1">
-        <h1 className="text-3xl font-semibold tracking-tight">Words to learn</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Add a word</h1>
         <p className="text-zinc-500">
           Add an English word or phrase. AI adds the Ukrainian translation and
           example sentences, and the word enters your review schedule.
@@ -90,6 +91,12 @@ export default async function Home() {
                       : "Generating translation…"}
                   </p>
                 )}
+
+                <WordActions
+                  id={word.id}
+                  text={word.text}
+                  canRetry={word.enrichment === "FAILED"}
+                />
               </li>
             ))}
           </ul>

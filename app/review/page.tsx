@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { connection } from "next/server";
 import ReviewCard from "@/components/ReviewCard";
 import { dueQueue, nextDueDate } from "@/lib/srs/review";
@@ -19,12 +18,7 @@ export default async function ReviewPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-4 py-10 sm:py-16">
-      <header className="flex items-baseline justify-between">
-        <h1 className="text-3xl font-semibold tracking-tight">Review</h1>
-        <Link href="/" className="text-sm text-indigo-600 hover:underline dark:text-indigo-400">
-          ← All words
-        </Link>
-      </header>
+      <h1 className="text-3xl font-semibold tracking-tight">Review</h1>
 
       {current ? (
         <ReviewCard
