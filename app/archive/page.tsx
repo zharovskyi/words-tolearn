@@ -1,12 +1,14 @@
 import { connection } from "next/server";
 import WordActions from "@/components/WordActions";
 import { prisma } from "@/lib/db";
+import { DEFAULT_TIMEZONE } from "@/lib/srs/dates";
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
+    timeZone: process.env.APP_TIMEZONE ?? DEFAULT_TIMEZONE,
   }).format(date);
 }
 
