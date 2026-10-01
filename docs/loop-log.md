@@ -33,7 +33,7 @@
 
 ### Runs that passed on the first try
 
-The feature commits for the review page, archive, navigation, spelling correction and the code-review fixes (`6fe7e52`: 95 tests) each passed on the first run; they are not listed because there was nothing to iterate on.
+The feature commits for navigation with Retry/Delete, the archive, the How it works page, spelling correction and the code-review fixes (`6fe7e52`: 95 tests) each passed on the first run; they are not listed because there was nothing to iterate on.
 
 ## A run captured at the end of the work
 

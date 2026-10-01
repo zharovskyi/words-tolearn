@@ -158,3 +158,19 @@ Both gaps were closed in Stage 10.
 **Limits**
 - The reviewer is the same model family run in a fresh context, and it did not execute any code. The review ran once, at the end of the project.
 
+## Stage 12: Reviewer agent, loop log and report audit
+
+- **Date:** 2026-10-01
+- **Trust level:** High for the code, Medium for the evidence description
+- **Commit:** `034201d`
+
+**What was done**
+- A second checker pass with the read-only reviewer agent defined in `.claude/agents/reviewer.md`. It found nothing important and 3 low-severity points; one (archive dates ignoring `APP_TIMEZONE`) was verified and fixed, two were verified and accepted with reasons. Verbatim output and decisions: `docs/reviewer-output.md`.
+- `docs/loop-log.md` records real `npm run verify` iterations from this project (3, 3 and 2 iterations).
+- The project report was audited against the course rubric, and its overstated claims were corrected (wrong framework version, wrong test counts, a Project Factory claim for something that was not done, a "conscious deviation" from `AGENTS.md` that had not actually been considered).
+
+**Why the evidence description is only Medium**
+- The named `reviewer` agent was not loaded in the session that created it, so the same instructions were run through a general-purpose subagent.
+- The reviewer is the same model family as the maker, and the loop is run by the agent inside one session, not by an unattended harness.
+- The report was first written before the rubric was read, and rewritten after.
+
