@@ -1,7 +1,7 @@
 **Ім'я:** Oleh Zharovskyi  
 **Проєкт:** AI Vocabulary Learning App with SRS (Spaced Repetition System)  
 **Де код:** [`main` branch](https://github.com/zharovskyi/words-tolearn)  
-**Відео-демо (1–2 хв):** [LINK_TO_DEMO_VIDEO]  
+**Відео-демо (1–2 хв):** [Відео-демо](https://drive.google.com/file/d/1Puvg0CWQmW4MG3eq3qxUqGl4873K8lsz/view?usp=sharing)  
 **Посилання:** https://words-tolearn.vercel.app/  
 
 ### Застосовані практики Agentic Engineering
